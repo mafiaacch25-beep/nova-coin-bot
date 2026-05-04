@@ -7,31 +7,32 @@ import {
   Routes,
   type ChatInputCommandInteraction,
   type SlashCommandBuilder,
-} from "discord.js";
-import { logger } from "../lib/logger";
-import { balanceCommand } from "./commands/balance";
-import { addCommand } from "./commands/add";
-import { removeCommand } from "./commands/remove";
-import { profileCommand } from "./commands/profile";
-import { leaderboardCommand } from "./commands/leaderboard";
-import { shopCommand } from "./commands/shop";
-import { transferCommand } from "./commands/transfer";
-import { setBackgroundCommand } from "./commands/setBackground";
-import { setColorCommand } from "./commands/setColor";
-import { setNameCommand } from "./commands/setName";
-import { setGithubCommand } from "./commands/setGithub";
-import { configCommand } from "./commands/config";
-import { exchangeCommand } from "./commands/exchange";
-import { activityCommand } from "./commands/activity";
-import { roleRequestCommand } from "./commands/roleRequest";
-import { dailyRewardCommand } from "./commands/dailyReward";
-import { meCommand } from "./commands/me";
-import { novaCoinCommand } from "./commands/novaCoin";
-import { registerActivityListeners } from "./activity";
-import { startAutoLeaderboard } from "./autoLeaderboard";
+} from 'discord.js';
+import { logger } from '../lib/logger';
+import { balanceCommand } from './commands/balance';
+import { addCommand } from './commands/add';
+import { removeCommand } from './commands/remove';
+import { profileCommand } from './commands/profile';
+import { leaderboardCommand } from './commands/leaderboard';
+import { shopCommand } from './commands/shop';
+import { transferCommand } from './commands/transfer';
+import { setBackgroundCommand } from './commands/setBackground';
+import { setColorCommand } from './commands/setColor';
+import { setNameCommand } from './commands/setName';
+import { setGithubCommand } from './commands/setGithub';
+import { configCommand } from './commands/config';
+import { exchangeCommand } from './commands/exchange';
+import { activityCommand } from './commands/activity';
+import { roleRequestCommand } from './commands/roleRequest';
+import { dailyRewardCommand } from './commands/dailyReward';
+import { meCommand } from './commands/me';
+import { novaCoinCommand } from './commands/novaCoin';
+import { registerActivityListeners } from './activity';
+import { startAutoLeaderboard } from './autoLeaderboard';
+import { startGitHubSync } from './githubSync';
 
 export interface Command {
-  data: SlashCommandBuilder | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
+  data: SlashCommandBuilder | Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
   execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 }
 
@@ -59,7 +60,7 @@ const commands: Command[] = [
 export async function startBot() {
   const token = process.env.DISCORD_BOT_TOKEN;
   if (!token) {
-    logger.warn("DISCORD_BOT_TOKEN not set, skipping bot startup");
+    logger.warn('DISCORD_BOT_TOKEN not set, skipping bot startup');
     return;
   }
 
@@ -77,8 +78,8 @@ export async function startBot() {
     commandCollection.set(cmd.data.name, cmd);
   }
 
-  client.once("clientReady", async (c) => {
-    logger.info({ tag: c.user.tag }, "Bot is ready");
+  client.once('clientReady', async (c) => {
+    logger.info({ tag: c.user.tag }, 'Bot is ready');
 
     const rest = new REST().setToken(token);
     const commandsJSON = commands.map((c) => c.data.toJSON());
@@ -87,13 +88,13 @@ export async function startBot() {
       await rest.put(Routes.applicationCommands(c.user.id), {
         body: commandsJSON,
       });
-      logger.info("Slash commands registered globally");
+      logger.info('Slash commands registered globally');
     } catch (err) {
-      logger.error({ err }, "Failed to register slash commands");
+      logger.error({ err }, 'Failed to register slash commands');
     }
   });
 
-  client.on("interactionCreate", async (interaction) => {
+  client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
     const command = commandCollection.get(interaction.commandName);
@@ -102,8 +103,8 @@ export async function startBot() {
     try {
       await command.execute(interaction);
     } catch (err) {
-      logger.error({ err, command: interaction.commandName }, "Command error");
-      const msg = { content: "حدث خطأ أثناء تنفيذ الأمر.", ephemeral: true };
+      logger.error({ err, command: interaction.commandName }, 'Command error');
+      const msg = { content: 'حدث خطأ أثناء تنفيذ الأمر.', ephemeral: true };
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp(msg);
       } else {
@@ -114,6 +115,7 @@ export async function startBot() {
 
   registerActivityListeners(client);
   startAutoLeaderboard(client);
+  startGitHubSync();
 
   await client.login(token);
 }
